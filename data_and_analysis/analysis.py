@@ -29,7 +29,7 @@ with open(path, 'r') as f:
 # Get the size of the results from the 20V graphs
     #INSERT HERE
 
-vertices = [5] * 10 + [10]*10 + [15]*10 + [17]*3 + [20]*2
+vertices = [5] * 10 + [10]*10 + [15]*10 + [16]*3 + [20]*2
 cnf_res = np.array(computed_sizes['CNF-SAT-VC'])
 approx_1_res = np.array(computed_sizes['APPROX-VC-1'])
 approx_2_res = np.array(computed_sizes['APPROX-VC-2'])

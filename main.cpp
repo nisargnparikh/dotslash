@@ -30,22 +30,20 @@ struct job {
   std::vector< std::pair<int,int> > edges;
 };
 
-// kind of ugly... maybe consider moving into a queue class
-pthread_mutex_t job_queue1_mutex = PTHREAD_MUTEX_INITIALIZER;  //mutex between cnf_sat and IO_handler
-pthread_mutex_t job_queue2_mutex = PTHREAD_MUTEX_INITIALIZER;  //mutex between approxVC1 and IO_handler
-pthread_mutex_t job_queue3_mutex = PTHREAD_MUTEX_INITIALIZER;  //mutex between approxVC2 IO_handler
-pthread_mutex_t result_queue1_mutex = PTHREAD_MUTEX_INITIALIZER;  //mutex between cnf_sat and IO_handler
-pthread_mutex_t result_queue2_mutex = PTHREAD_MUTEX_INITIALIZER;  //mutex between approxVC1 and IO_handler
-pthread_mutex_t result_queue3_mutex = PTHREAD_MUTEX_INITIALIZER;  //mutex between approxVC2 IO_handler
+pthread_mutex_t job_queue1_mutex = PTHREAD_MUTEX_INITIALIZER;  //cnf_sat and IO_handler
+pthread_mutex_t job_queue2_mutex = PTHREAD_MUTEX_INITIALIZER;  //approxVC1 and IO_handler
+pthread_mutex_t job_queue3_mutex = PTHREAD_MUTEX_INITIALIZER;  //approxVC2 IO_handler
+pthread_mutex_t result_queue1_mutex = PTHREAD_MUTEX_INITIALIZER;  //cnf_sat and IO_handler
+pthread_mutex_t result_queue2_mutex = PTHREAD_MUTEX_INITIALIZER;  //approxVC1 and IO_handler
+pthread_mutex_t result_queue3_mutex = PTHREAD_MUTEX_INITIALIZER;  //approxVC2 IO_handler
 
-std::list<job*> job_queue1;  // job queue for cnf_sat_vc
-std::list<job*> job_queue2;  // job queue for approxVC1
-std::list<job*> job_queue3;  // job queue for approxVC2
+std::list<job*> job_queue1;  //cnf_sat_vc
+std::list<job*> job_queue2;  //approxVC1
+std::list<job*> job_queue3;  //approxVC2
 
-std::list<std::string> result_queue1; // result queue for cnf_sat_vc
-std::list<std::string> result_queue2; // result queue for approxVC1
-std::list<std::string> result_queue3; // result queue for approxVC2
-
+std::list<std::string> result_queue1; //cnf_sat_vc
+std::list<std::string> result_queue2; //approxVC1
+std::list<std::string> result_queue3; //approxVC2
 
 std::vector< std::pair<int,int> > parse(std::string s) {
     std::pair<int, int> edge;
@@ -53,7 +51,7 @@ std::vector< std::pair<int,int> > parse(std::string s) {
     
     // using regex
     try {
-        std::regex re("-?[0-9]+"); //match consectuive numbers, matches lazily
+        std::regex re("-?[0-9]+"); //consecutive numbers matching
         std::sregex_iterator next(s.begin(), s.end(), re);
         std::sregex_iterator end;
         while (next != end) {
@@ -62,7 +60,7 @@ std::vector< std::pair<int,int> > parse(std::string s) {
             
             match1 = *next;
             next++;
-            // iterate to next match
+           
             if (next != end) {
                 match2 = *next;
                 edge.first = std::stoi(match1.str());
@@ -101,7 +99,7 @@ void* IO_handler(void* args) {
             
             case 'V': case 'v':
                 std::cin >> vertices;
-                // std::cout << "V " << vertices << std::endl;    
+                  
                 if (vertices < 0) {
                     std::cerr << "Error: Incorrect value for vertices entered" << std::endl;
                     vertices = 0;
@@ -114,12 +112,9 @@ void* IO_handler(void* args) {
             case 'E': case 'e': 
             {
                 std::cin >> edges_input;
-                // std::cout << "E " << edges_input << std::endl;
+                
                 parsed_edges = parse(edges_input);
-                // std::cout << "CNF-SAT-VC: " << cnf_sat_vc(vertices, parsed_edges) << std::endl;
-                // std::cout << "APPROX-VC-1: " << approxVC1(vertices, parsed_edges) << std::endl;
-                // std::cout << "APPROX-VC-2: " << approxVC2(vertices, parsed_edges) << std::endl;
-
+                
                 struct job* incoming_job;
 
                 // add to queue 1
@@ -155,7 +150,7 @@ void* IO_handler(void* args) {
             default:
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                std::cerr << "Error: command not recognized" << std::endl;
+                std::cerr << "Error: command cannot be recognized" << std::endl;
         }
     }
     return NULL;
@@ -171,7 +166,6 @@ void* output_handler(void* args) {
         pthread_mutex_lock (&result_queue2_mutex);
         pthread_mutex_lock (&result_queue3_mutex);
 
-        // write results to console in required order
         while(!result_queue1.empty() && !result_queue2.empty() && !result_queue3.empty()) {
             std::string result;
             
@@ -188,7 +182,7 @@ void* output_handler(void* args) {
             std::cout << result << std::endl;
         }
         if ( (*((bool*)args+1) && result_queue1.empty() && result_queue2.empty() && result_queue3.empty())
-             || *((bool*)args+2) ) { // check if cnf_sat ignore flag was passed as argument
+             || *((bool*)args+2) ) {
             exit_flag = true;
         }
 
@@ -217,13 +211,13 @@ void* calc_cnf_sat_vc(void* args) {
         struct job* retrieved_job = NULL;
         std::string result;
 
-        // get job from queue, use mutex for thread safety
+        // use mutex and get job from queue
         pthread_mutex_lock (&job_queue1_mutex);
         if (!job_queue1.empty()) {
             retrieved_job = job_queue1.front(); 
             job_queue1.pop_front();
 
-            // time start
+            // time starts
             pthread_getcpuclockid(pthread_self(), &clock_id);
             struct timespec ts_start;
             clock_gettime(clock_id, &ts_start);
@@ -231,7 +225,7 @@ void* calc_cnf_sat_vc(void* args) {
             // compute result
             result = "CNF-SAT-VC: " + cnf_sat_vc(retrieved_job->vertices, retrieved_job->edges);
             
-            //time end
+            //time ends
             struct timespec ts_end;
             clock_gettime(clock_id, &ts_end);
             long double elapsed_time_us = ((long double)ts_end.tv_sec*1000000 + (long double)ts_end.tv_nsec/1000.0) - ((long double)ts_start.tv_sec*1000000 + (long double)ts_start.tv_nsec/1000.0);
@@ -242,7 +236,7 @@ void* calc_cnf_sat_vc(void* args) {
                       << "time_us," << elapsed_time_us << std::endl;
             }
             
-            // write to file
+            // writing to file
             if (OUT_TO_FILE) {
                 if (first) {
                     outfile << elapsed_time_us;
@@ -268,7 +262,7 @@ void* calc_cnf_sat_vc(void* args) {
         }
         pthread_mutex_unlock (&job_queue1_mutex);
 
-        // cleanup memory taken by job
+        //memory cleanup
         delete retrieved_job;
         if (exit_flag) {break;}
     }
@@ -291,13 +285,13 @@ void* calc_aprox_vc_1(void* args) {
         struct job* retrieved_job = NULL;
         std::string result;
 
-        // get job from queue, use mutex for thread safety
+        //use mutex, get job from queue
         pthread_mutex_lock (&job_queue2_mutex);
         if (!job_queue2.empty()) {
             retrieved_job = job_queue2.front(); 
             job_queue2.pop_front();
 
-            // time start
+            // time starts
             pthread_getcpuclockid(pthread_self(), &clock_id);
             struct timespec ts_start;
             clock_gettime(clock_id, &ts_start);
@@ -305,7 +299,7 @@ void* calc_aprox_vc_1(void* args) {
             // compute result
             result = "APPROX-VC-1: " + approxVC1(retrieved_job->vertices, retrieved_job->edges);
 
-            //time end
+            //time ends
             struct timespec ts_end;
             clock_gettime(clock_id, &ts_end);
             long double elapsed_time_us = ((long double)ts_end.tv_sec*1000000 + (long double)ts_end.tv_nsec/1000.0) - ((long double)ts_start.tv_sec*1000000 + (long double)ts_start.tv_nsec/1000.0);
@@ -316,7 +310,7 @@ void* calc_aprox_vc_1(void* args) {
                           << "time_us," << elapsed_time_us << std::endl;
             }
             
-            // write to file
+            // writing to file
             if (OUT_TO_FILE) {
                 if (first) {
                     outfile << elapsed_time_us;
@@ -341,7 +335,7 @@ void* calc_aprox_vc_1(void* args) {
         }
         pthread_mutex_unlock (&job_queue2_mutex);
 
-        // cleanup memory taken by job
+        // memory cleanup
         delete retrieved_job;
         if (exit_flag) {break;}
 
@@ -365,13 +359,13 @@ void* calc_approxVC2(void* args) {
         struct job* retrieved_job = NULL;
         std::string result;
 
-        // get job from queue, use mutex for thread safety
+        // use mutex and get job from queue
         pthread_mutex_lock (&job_queue3_mutex);
         if (!job_queue3.empty()) {
             retrieved_job = job_queue3.front(); 
             job_queue3.pop_front();
 
-            // time start
+            // time starts
             pthread_getcpuclockid(pthread_self(), &clock_id);
             struct timespec ts_start;
             clock_gettime(clock_id, &ts_start);
@@ -379,7 +373,7 @@ void* calc_approxVC2(void* args) {
             // compute result
             result = "APPROX-VC-2: " + approxVC2(retrieved_job->vertices, retrieved_job->edges);
 
-            // time end
+            // time ends
             struct timespec ts_end;
             clock_gettime(clock_id, &ts_end);
             long double elapsed_time_us = ((long double)ts_end.tv_sec*1000000 + (long double)ts_end.tv_nsec/1000.0) - ((long double)ts_start.tv_sec*1000000 + (long double)ts_start.tv_nsec/1000.0);
@@ -417,7 +411,7 @@ void* calc_approxVC2(void* args) {
 
         pthread_mutex_unlock (&job_queue3_mutex);
 
-        // cleanup memory taken by job
+        //memory  cleanup
         delete retrieved_job;
         if (exit_flag) {break;}
     }
@@ -439,7 +433,7 @@ int main(int argc, char **argv) {
     bool ignore_sat = false;
     int c;
 
-    // expected options are '-o' [out to file], '-n value' [name to prepend filename], '-i' [ignore cnfsat]
+    //options are '-o' [out to file], '-n value' [name to prepend filename], '-i' [ignore cnfsat]
     while ((c = getopt (argc, argv, "on:il?")) != -1)
         switch (c)
         {
@@ -462,7 +456,7 @@ int main(int argc, char **argv) {
         default:
             return 0;
         }
-    // std::cout << "r=" << NAME << "o=" << OUT_TO_FILE << "i=" << ignore_sat << "l=" << LOG_EN << std::endl;
+    
 
     pthread_create (&IO_thread, NULL, &IO_handler, (void *) finished_flags);
     pthread_create (&out_thread, NULL, &output_handler, (void *) finished_flags);
@@ -472,13 +466,13 @@ int main(int argc, char **argv) {
     pthread_create (&approx_vc2_thread, NULL, &calc_approxVC2, (void *) finished_flags);
 
     pthread_join (IO_thread, NULL);
-    finished_flags[0] = true; // flag indicates that EOF was seen at input, signal all threads to finish work and return
+    finished_flags[0] = true; // signal all threads to finish work and return, flag indicates that EOF was seen at input
 
     if (!ignore_sat) {
         pthread_join (cnf_sat_thread, NULL); }
     pthread_join (approx_vc1_thread, NULL);
     pthread_join (approx_vc2_thread, NULL);
-    finished_flags[1] = true; // flag indicates all jobs processed, signal output writer to finish print results and return
+    finished_flags[1] = true; //signal output writer to finish print results and return, flag indicates all jobs processed
     pthread_join (out_thread, NULL);
     return 0;
 }

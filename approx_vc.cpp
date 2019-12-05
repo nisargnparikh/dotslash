@@ -8,12 +8,12 @@
 bool checkvalidinput(int v, std::vector< std::pair<int,int> > edges) {
     for ( auto& e : edges) {
         if (v <= e.first || v <= e.second || e.first < 0 || e.second < 0) {
-            std::cerr << "Error: Attempted to add edge to vertex that does not exist"
+            std::cerr << "Error: Adding edge to vertex that does not exist"
                       << std::endl;
             return false;
         }
         if (e.first == e.second) {
-            std::cerr << "Error:  Cannot add edge from vertex to itself"
+            std::cerr << "Error: Adding edge from vertex to itself is not possible"
                       << std::endl;
             return false;
         }
@@ -61,7 +61,7 @@ std::string approxVC1(int v, std::vector< std::pair<int,int> > edges) {
     std::vector< std::vector<int> > graph = generategraph_adjmatrix(v, edges);
 
     while(true) {
-        // pick highest degree vertex
+        // picking highest degree vertex
         int vertex = -1;
         int max_degree = 0;
         for (unsigned int r=0; r < graph.size(); r++) {

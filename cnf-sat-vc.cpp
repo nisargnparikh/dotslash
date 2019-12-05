@@ -24,16 +24,16 @@ std::string printvect(std::vector<int> resultpaths) {
     }
     return result;
 }
-// Constructor
+// Empty Constructor
 VertexCover::VertexCover( int v, std::vector< std::pair<int,int> > e):
-    vertices(v), edges(e) {/*empty constructor*/}
+    vertices(v), edges(e) {}
 
 
 // Private
 Minisat::Var VertexCover::toVar(int row, int column, int k) {
     // Map all vertices to a SAT boolean problem
-    // The rows indicate vertices and columns indicate position
-    // in the minimum vertex cover solution
+    // rows indicate vertices and columns indicate position in the minimum vertex cover solution
+    
     int columns = k;
     return row * columns + column;
 }
@@ -112,7 +112,7 @@ addclause_alledgecovered(Minisat::Solver& solver, int k) {
 
 
 bool VertexCover::solve(Minisat::Solver& solver, int k) {
-    // init_variables();
+    
     for (int r = 0; r < vertices; r++) {
         for (int c = 0; c < k; c++) {
             solver.newVar();
@@ -175,7 +175,7 @@ std::string VertexCover::linsearch_VC() {
     }
     
     // Finds the minimum vertex cover and prints path
-    // Uses Linear search to find minimum
+    // Using Linear search to find minimum
         
     int results[vertices];  //0 is UNSAT, 1 is SAT, -1 is undefined where index is k or vertex cover length
     std::vector<int> resultpaths[vertices];
@@ -218,7 +218,7 @@ std::string VertexCover::binsearch_VC() {
     }
     
     // Finds the minimum vertex cover and prints path
-    // Uses Binary search to find minimum
+    // Using Binary search to find minimum
     int low = 0;
     int high = vertices;
     int mid;
